@@ -47,10 +47,12 @@ EOF
 === 네트워크 연결 분석 결과 ===
 
 전체 연결 시도: X건
-성공: Y건
-실패: Z건
-성공률: W%
 
+성공: Y건
+
+실패: Z건
+
+성공률: W%
 
 제한사항:
 
@@ -90,9 +92,10 @@ echo "성공률: "$V_PERCENT" %"
 === 접속 빈도 TOP 3 ===
 
 1위: 192.168.1.XXX (X회) - 첫 접속: 10:XX:XX
-2위: 192.168.1.XXX (X회) - 첫 접속: 10:XX:XX 
-3위: 192.168.1.XXX (X회) - 첫 접속: 10:XX:XX
 
+2위: 192.168.1.XXX (X회) - 첫 접속: 10:XX:XX
+
+3위: 192.168.1.XXX (X회) - 첫 접속: 10:XX:XX
 
 제한사항:
 
@@ -140,7 +143,9 @@ echo "3위: $V_THIRD_IP ($V_THIRD_IP_COUNT회) - 첫 접속: $V_THIRD_IP_TIME"
 === 서버 상태 점검 결과 ===
 
 [정상] web01 (192.168.1.10) - 응답시간: XXms
+
 [정상] web02 (192.168.1.11) - 응답시간: XXms (느림)
+
 [오프라인] db01 (192.168.1.20) - 응답없음
 
 ...
@@ -207,6 +212,30 @@ fi
 - cut, sort 명령어 활용
 - 숫자 비교를 위한 조건문 사용
 
+connection_count.sh
+```bash
+#!/bin/bash
+
+V_HIGH_LIST=$(grep -E " [1-9][0-9]+$" connections.txt)
+V_NORMAL_LIST=$(grep -E " [5-9]$" connections.txt)
+V_LOW_LIST=$(grep -E " [0-4]$" connections.txt)
+
+V_HIGH_COUNT=$(echo "$V_HIGH_LIST" | wc -l)
+V_NORMAL_COUNT=$(echo "$V_NORMAL_LIST" | wc -l)
+V_LOW_COUNT=$(echo "$V_LOW_LIST" | wc -l)
+
+echo "=== 트래픽 분석 결과 ==="
+echo
+echo "높음(10회 이상): $V_HIGH_COUNT 개"
+echo "보통(5-9회): $V_NORMAL_COUNT 개"
+echo "낮음(4회 이하): $V_LOW_COUNT 개"
+echo
+
+echo "[주의 필요 IP 목록]"
+echo
+echo "$V_HIGH_LIST"
+```
+
 ---
 
 ## 문제 5: 현재 시스템 네트워크 정보 수집기
@@ -233,32 +262,36 @@ fi
 - ip, hostname, ping, grep, wc 명령어 활용
 - 각 정보를 변수에 저장 후 출력
 
----
+```bash
+#!/bin/bash
 
-## 실행 방법
+V_RAW_IP_A=$(ip -4 -o a | tr -s " ")
+V_INTF_COUNT=$(echo "$V_RAW_IP_A" | wc -l)
+V_INTERFACES=$(echo "$V_RAW_IP_A" | cut -d" " -f1,2)
 
-각 문제의 스크립트를 작성한 후 다음과 같이 실행:
+echo "Interfaces"
+echo "$V_INTERFACES"
+read -p "Pick Interface by number: " V_INTF_NUM
+echo
 
-# 실행 권한 부여
+# user user selection to get specfic interface
+V_USER_SELECT=$(echo "$V_RAW_IP_A" | grep "^$V_INTF_NUM: ")
+V_US_INTF_NAME=$(echo "$V_USER_SELECT" | cut -d" " -f2)
+V_US_INTF_IP=$(echo "$V_USER_SELECT" | cut -d" " -f4 | cut -d"/" -f1)
+V_US_INTF_DGATEWAY=$(ip route show dev $V_US_INTF_NAME | cut -d" " -f3 | head -n 1)
 
-chmod +x script_name.sh
+# check connection
+if ping -I "$V_US_INTF_NAME" -c1 -W1 8.8.8.8 >/dev/null 2>&1; then
+  V_INT_STAT="정상"
+else
+  V_INT_STAT="차단"
+fi
 
-  
-
-# 스크립트 실행
-
-./script_name.sh [인자]
-
-  
-
-## 주의사항
-
-- 모든 스크립트는 #!/bin/bash로 시작
-    
-- 변수 선언 시 공백 없이 작성: var=value
-    
-- if문 조건 확인 시 [ ] 사용
-    
-- 명령어 결과를 변수에 저장할 때 $(command) 사용
-    
-- 파일 존재 여부 확인: [ -f filename ]
+clear
+echo "=== 시스템 네트워크 정보 ==="
+echo
+echo "내부 IP: $V_US_INTF_IP"
+echo "기본 게이트웨이: $V_US_INTF_DGATEWAY"
+echo "활성 인터페이스: $V_INTF_COUNT 개"
+echo "인터넷 연결: $V_INT_STAT"
+```

@@ -14,6 +14,7 @@ $ sudo ./problem1.sh
 [SKIP] 추가 작업을 수행하지 않습니다.
 ```
 
+problem1.sh
 ```bash
 #!/bin/bash
 
@@ -44,6 +45,7 @@ $ sudo ./problem2.sh
 [INFO] 포트 8080/tcp 이 열려 있지 않습니다. 아무 작업도 수행하지 않습니다.
 ```
 
+problem2.sh
 ```bash
 #/bin/bash
 
@@ -77,6 +79,7 @@ $ sudo ./problem3.sh
 success
 ```
 
+problem3.sh
 ```bash
 V_IP="12.168.0.31"
 V_PORT="8080"

@@ -49,7 +49,7 @@ $ sudo ./problem2.sh
 
 problem2.sh
 ```bash
-#/bin/bash
+#!/bin/bash
 
 V_PORT="8080/tcp"
 
@@ -84,6 +84,8 @@ success
 
 problem3.sh
 ```bash
+#!/bin/bash
+
 V_IP="12.168.0.31"
 V_PORT="8080"
 

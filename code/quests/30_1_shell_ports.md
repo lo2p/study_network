@@ -450,45 +450,63 @@ auto_restart.sh
 ```bash
 #!/bin/bash
 
-V_MONITOR_PORTS="7000 8000"
-
+V_RAW_DATA=$(cat << EOF
+7000:python3 -m http.server
+8000:python3 -m http.server
+9000:python3 -m http.server
+EOF
+)
 
 echo "서비스 자동 재시작 모니터"
 echo "========================"
 echo "설정된 서비스들:"
 echo
 
-for port in $V_MONITOR_PORTS; do
-    V_PID=$(lsof -i :"$port" | tr -s " " | tail -n +2 | cut -d" " -f2)
-    V_CMD=$(ps -p "$V_PID" --no-headers -o cmd)
-
-    echo "- 포트 $port: $V_CMD"
-
+IFS=$'\n'
+for data in $V_RAW_DATA; do
+    V_TMP_PORT=$(echo "$data" | cut -d":" -f1)
+    V_TMP_CMD=$(echo "$data" | cut -d":" -f2-)
+    echo "- 포트 $V_TMP_PORT: $V_TMP_CMD"
 done
 
 echo
 echo "모니터링 시작..."
+echo
 
-for port in $V_MONITOR_PORTS; do
-    V_TIMESTAMP=$(date +"%H:%M:%S")
-    V_PID=$(lsof -i :"$port" | tr -s " " | tail -n +2 | cut -d" " -f2)
-    V_CMD=$(ps -p "$V_PID" --no-headers -o cmd)
-    if [ -n $V_CMD ]; then
-        echo "[$V_TIMESTAMP] 포트 $port 상태 확인... ✓ 정상"
-    else
-        echo "[$V_TIMESTAMP] 포트 $port 상태 확인... ✗ 다운됨"
-        echo "[$V_TIMESTAMP] 포트 $port 서비스 재시작 중..."
-        kill -9 $V_PID
-        echo "[$V_TIMESTAMP] 기존 프로세스 정리 완료"
-        echo "[$V_TIMESTAMP] 새 프로세스 시작: $V_CMD"
-        $V_CMD
-        echo "[$V_TIMESTAMP] 포트 $port 재시작 완료 ✓"
-    fi
+while true; do
+    for data in $V_RAW_DATA; do
+        V_TIMESTAMP=$(date +"%H:%M:%S")
 
+        # Extract port and command
+        V_PORT=$(echo "$data" | cut -d":" -f1)
+        V_CMD=$(echo "$data" | cut -d":" -f2-)
+
+        # Get PID listening on port
+        V_PID=$(lsof -t -i :"$V_PORT" 2>/dev/null | head -n 1)
+
+        # Check if service is up via curl
+        if curl --silent --fail --max-time 5 http://127.0.0.1:$V_PORT > /dev/null 2>&1; then
+            echo "[$V_TIMESTAMP] 포트 $V_PORT 상태 확인... ✓ 정상"
+        else
+            echo "[$V_TIMESTAMP] 포트 $V_PORT 상태 확인... ✗ 다운됨"
+            echo "[$V_TIMESTAMP] 포트 $V_PORT 서비스 재시작 중..."
+
+            if [ -n "$V_PID" ]; then
+                kill -9 "$V_PID"
+                echo "[$V_TIMESTAMP] 기존 프로세스 정리 완료"
+            fi
+
+            echo "[$V_TIMESTAMP] 새 프로세스 시작: $V_CMD"
+            nohup bash -c "$V_CMD $V_PORT" &> /dev/null &
+            echo "[$V_TIMESTAMP] 포트 $V_PORT 재시작 완료 ✓"
+        fi
+    done
+    echo
+    echo "다음 확인까지 30초 대기 중..."
+    sleep 30
+    echo
 done
-
-echo "다음 확인까지 30초 대기 중..."
-sleep 30
+unset IFS
 ```
 
 연습문제 8: 포트 스캐너 스크립트

@@ -10,3 +10,4 @@ Linux Network
 - SSH with Shell ifs: [퀘스트](/code/quests/10_3_ssh_withshell_ifs.md)
 - SSH Networks: [퀘스트](/code/quests/11_1_ssh_networks.md)
 - Shell Ports: [퀘스트](/code/quests/30_1_shell_ports.md)
+- Shell Firewalls: [퀘스트](/code/quests/40_1_shell_firewalls.md)
